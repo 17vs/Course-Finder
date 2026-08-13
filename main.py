@@ -156,8 +156,17 @@ def course():
 @app.route('/course/show', methods=['POST'])
 def show_course():
     cur = request.form['currents']
-    return render_template("index.html", courses=courses, course_wanted=course_wanted, currents=currents, coursefile=coursefile + ".jpg", showCurrents=toPrint(cur), major=major)
 
+    return render_template(
+        "index.html",
+        courses=courses,
+        course_wanted=course_wanted,
+        currents=currents,
+        coursefile=coursefile + ".jpg",
+        showCurrents=toPrint(cur),
+        selected_current=cur,
+        major=major
+    )
 
 @app.route('/geturl', methods=['GET', 'POST'])
 def get_url():
@@ -172,4 +181,4 @@ def get_url():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001)
+    app.run(host='0.0.0.0', debug=True, port=5001)

@@ -3,67 +3,181 @@
 
 <head>
   <title>Course Finder</title>
-  <link rel="stylesheet" type="text/css" href="css/style.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
 <body>
+
   {% if request.path != '/geturl' %}
-  <div class="grid" action="/" method="POST">
-    <button class="" style="position: fixed; top: 15px; left: 15px;" onclick="window.location.href='/';">Home</button>
-    <button class="" style="position: fixed; top: 50px; left: 15px;" onclick="window.location.href='/geturl';">Change Major</button>
-    <form id="inputcourse" action="/course" method="post" style="position: fixed; top: 15px; left: 90px;">
-      <label for="course">Input Course:</label>
-      <input type="text" id="course" name="course">
-      <input type="submit" value="Submit">
-    </form>
-    <h1 style="position: fixed; top: 0; left: 50%; transform: translateX(-50%);">UF {{major}} Courses</h1>
-    <div style="position: fixed; top: 50%; left: 15px;; transform: translate(0, -50%); display: flex; flex-direction: column; align-items: flex-start;">
-      <p style="position: relative;">Course List:</p>
-      <div style="display: flex; justify-content: space-around; width: 100%;">
-        {% set third = courses|length // 3 %}
-        {% for i in range(courses|length) %}
-          {% if i % third == 0 %}
-            <div style="display: flex; flex-direction: column; margin: 0 15px;">
-          {% endif %}
-            <form id="{{courses[i]}}" action="/course" method="post">
-              <input type="hidden" name="course" value="{{ courses[i] }}">
-              <a href="#" style="font-size: 18px; line-height: 30px;" onclick="document.getElementById('{{courses[i]}}').submit()">{{ courses[i] }}</a>
-            </form>
-          {% if (i + 1) % third == 0 or i == courses|length - 1 %}
-            </div>
-          {% endif %}
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-  <div class="grid" method="POST">
-  {% if request.path == '/course' or request.path == '/course/show' %}
-    <img src="{{ url_for('static', filename=coursefile) }}" style="position: fixed; top: 50%; left: 50%; max-width: 50%; transform: translate(-50%, -50%);">
-    <div style="position: fixed; top: 0; bottom: 0; right: 15px; display: flex; flex-direction: column; align-items: flex-end; justify-content: center;">
-    {% for i in range(currents|length) %}
-      <form id="{{currents[i]}}" action="/course/show" method="post">
-      <input type="hidden" name="currents" value="{{ currents[i] }}">
-      <a href="#" style="font-size: 18px; line-height: 30px;" onclick="this.parentNode.submit()">{{ currents[i] }}</a>
+
+    <div class="grid">
+
+      <button
+        style="position: fixed; top: 15px; left: 15px;"
+        onclick="window.location.href='/';">
+        Home
+      </button>
+
+      <button
+        style="position: fixed; top: 50px; left: 15px;"
+        onclick="window.location.href='/geturl';">
+        Change Major
+      </button>
+
+      <form
+        id="inputcourse"
+        action="/course"
+        method="post"
+        style="position: fixed; top: 15px; left: 90px;">
+
+        <label for="course">Select Course:</label>
+
+        <select id="course" name="course" required>
+          <option
+            value=""
+            disabled
+            {% if not course_wanted %}selected{% endif %}>
+            Choose a course
+          </option>
+
+          {% for course in courses %}
+            <option
+              value="{{ course }}"
+              {% if course_wanted == course %}selected{% endif %}>
+              {{ course }}
+            </option>
+          {% endfor %}
+        </select>
+
+        <input type="submit" value="Submit">
+
       </form>
-    {% endfor %}
+
+      <h1
+        style="
+          position: fixed;
+          top: 0;
+          left: 50%;
+          transform: translateX(-50%);
+        ">
+        UF {{ major }} Courses
+      </h1>
+
     </div>
-    {% if request.path == '/course/show' %}
-      <div style="position: fixed; bottom: 15px; left: 50%; transform: translate(-50%, 0);">
-        {{ showCurrents|safe}}
-      </div>
-    {% endif %}
+
+    <div class="grid">
+
+      {% if request.path == '/course' or request.path == '/course/show' %}
+
+        <img
+          src="{{ url_for('static', filename=coursefile) }}"
+          style="
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            max-width: 50%;
+            transform: translate(-50%, -50%);
+          "
+          alt="Course prerequisite graph"
+        >
+
+        {% if course_wanted %}
+
+          <form
+            action="/course/show"
+            method="post"
+            style="
+              position: fixed;
+              top: 80px;
+              right: 15px;
+            ">
+
+            <label for="currents">Select Prerequisite:</label>
+
+            <select id="currents" name="currents" required>
+
+              <option
+                value=""
+                disabled
+                {% if not selected_current %}selected{% endif %}>
+                Choose a prerequisite
+              </option>
+
+              {% for i in range(currents|length) %}
+
+                <option
+                  value="{{ currents[i] }}"
+                  {% if selected_current == currents[i] %}selected{% endif %}>
+                  {{ currents[i] }}
+                </option>
+
+              {% endfor %}
+
+            </select>
+
+            <input type="submit" value="Show">
+
+          </form>
+
+        {% endif %}
+
+        {% if request.path == '/course/show' %}
+
+          <div
+            style="
+              position: fixed;
+              bottom: 15px;
+              left: 50%;
+              transform: translate(-50%, 0);
+            ">
+            {{ showCurrents|safe }}
+          </div>
+
+        {% endif %}
+
+      {% endif %}
+
+    </div>
+
   {% endif %}
-  {% endif %}
+
   {% if request.path == '/geturl' %}
-    <form id="inputForm" method="post" style="position: fixed; top: 15px; left: 90px;">
-      <label for="inputmajor">Input Major:</label>
-      <input type="text" id="inputmajor" name="inputmajor" required>
-      <label for="inputurl">Input URL:</label>
-      <input type="text" id="inputurl" name="inputurl" required>
-      <input type="submit" value="Submit">
-    </form>
+
+    <div class="grid">
+
+      <form
+        id="inputForm"
+        method="post"
+        style="position: fixed; top: 15px; left: 90px;">
+
+        <label for="inputmajor">
+          Input Major:
+        </label>
+
+        <input
+          type="text"
+          id="inputmajor"
+          name="inputmajor"
+          required>
+
+        <label for="inputurl">
+          Input URL:
+        </label>
+
+        <input
+          type="text"
+          id="inputurl"
+          name="inputurl"
+          required>
+
+        <input type="submit" value="Submit">
+
+      </form>
+
+    </div>
+
   {% endif %}
-  </div>
+
 </body>
 
 </html>
