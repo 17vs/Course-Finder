@@ -13,7 +13,8 @@ echo "Building Docker image..."
 docker build -t "$IMAGE_NAME" .
 
 echo "Starting container..."
-docker run --rm \
+
+MSYS_NO_PATHCONV=1 docker run --rm \
   --name "$CONTAINER_NAME" \
   -p "$HOST_PORT:$CONTAINER_PORT" \
   -e PORT="$CONTAINER_PORT" \
