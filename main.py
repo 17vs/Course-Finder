@@ -504,6 +504,33 @@ def parse_catalog(subject_name):
         # Keep a flat list too. It is useful for dropdowns and
         # backwards-compatible iteration, while prereq_groups preserves
         # the actual AND/OR meaning.
+        # Remove the course itself from its prerequisite groups.
+        # Some catalog entries can accidentally reference themselves;
+        # treating that as a real prerequisite creates loops and makes
+        # the course appear in its own graph/description.
+        cleaned_prereq_groups = []
+
+        for group in prereq_groups:
+            cleaned_group = [
+                normalize_course_code(prereq)
+                for prereq in group
+                if (
+                    normalize_course_code(prereq)
+                    and normalize_course_code(prereq) != course_code
+                )
+            ]
+
+            cleaned_group = list(
+                dict.fromkeys(cleaned_group)
+            )
+
+            if cleaned_group:
+                cleaned_prereq_groups.append(
+                    cleaned_group
+                )
+
+        prereq_groups = cleaned_prereq_groups
+
         prereqs = flatten_prerequisite_groups(
             prereq_groups
         )
@@ -607,41 +634,6 @@ def get_current_courses():
     return parse_catalog(major_name)
 
 
-def get_all_coreqs(course_code):
-    """
-    Corequisite relationships are effectively mutual for display.
-    Include both corequisites explicitly listed by this course and
-    reverse relationships where another loaded course lists this one.
-    """
-    course_code = normalize_course_code(course_code)
-
-    load_course(course_code)
-
-    coreqs = []
-
-    if course_code in course_data:
-        for coreq in course_data[course_code].get("coreqs", []):
-            coreq = normalize_course_code(coreq)
-
-            if coreq and coreq not in coreqs:
-                coreqs.append(coreq)
-
-    for other_course, data in course_data.items():
-        other_coreqs = [
-            normalize_course_code(coreq)
-            for coreq in data.get("coreqs", [])
-        ]
-
-        if (
-            course_code in other_coreqs
-            and other_course != course_code
-            and other_course not in coreqs
-        ):
-            coreqs.append(other_course)
-
-    return coreqs
-
-
 def toPrint(course_code):
     course_code = normalize_course_code(course_code)
 
@@ -670,6 +662,24 @@ def toPrint(course_code):
         [[course] for course in data.get("prereqs", [])]
     )
 
+    prereq_groups = [
+        [
+            normalize_course_code(prereq)
+            for prereq in group
+            if (
+                normalize_course_code(prereq)
+                and normalize_course_code(prereq) != course_code
+            )
+        ]
+        for group in prereq_groups
+    ]
+
+    prereq_groups = [
+        group
+        for group in prereq_groups
+        if group
+    ]
+
     if prereq_groups:
         readable_groups = []
 
@@ -686,12 +696,10 @@ def toPrint(course_code):
             " AND ".join(readable_groups)
         )
 
-    all_coreqs = get_all_coreqs(course_code)
-
-    if all_coreqs:
+    if data["coreqs"]:
         pieces.append(
             "<b>Corequisites:</b><br>" +
-            ", ".join(all_coreqs)
+            ", ".join(data["coreqs"])
         )
 
     return "<br>".join(pieces)
