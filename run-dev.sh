@@ -21,4 +21,4 @@ MSYS_NO_PATHCONV=1 docker run --rm \
   -v "$(pwd):/app" \
   -w /app \
   "$IMAGE_NAME" \
-  python main.py
+  bash -c "python build_course_index.py &&  python main.py"

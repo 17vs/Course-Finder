@@ -1,17 +1,24 @@
 FROM python:3.12-slim
 
-RUN apt-get update && \
-    apt-get install -y graphviz && \
-    rm -rf /var/lib/apt/lists/*
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-COPY requirements.txt .
+# Python's graphviz package needs the system Graphviz binaries.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends graphviz \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements.txt ./
+
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN mkdir -p static
+RUN mkdir -p /app/catalog /app/static
 
-CMD gunicorn --bind 0.0.0.0:$PORT main:app
+EXPOSE 10000
+
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-10000} --workers 2 --threads 1 --timeout 120 main:app"]

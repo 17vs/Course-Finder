@@ -2,181 +2,800 @@
 <html>
 
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>Course Finder</title>
+
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    #majorForm {
+      margin-top: 15px;
+    }
+
+    /* Entire left-side control area */
+    .left-controls {
+      position: fixed;
+      top: 30px;
+      left: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: flex-start;
+      z-index: 2000;
+    }
+
+    /* One row inside the left-side controls */
+    .control-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .control-label {
+      min-width: 95px;
+    }
+
+    .searchable-dropdown {
+      position: relative;
+      display: inline-block;
+      width: 300px;
+    }
+
+    .search-input-wrapper {
+      position: relative;
+      width: 100%;
+    }
+
+    .dropdown-search {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 5px 30px 5px 7px;
+    }
+
+    /* X button inside each searchable input */
+    .clear-search {
+      position: absolute;
+      right: 5px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+      padding: 0 4px;
+      color: #555;
+    }
+
+    .clear-search:hover {
+      color: #000;
+    }
+
+    .dropdown-options {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      width: 100%;
+      max-height: 240px;
+      overflow-y: auto;
+      background: white;
+      border: 1px solid #999;
+      box-sizing: border-box;
+      z-index: 3000;
+    }
+
+    .dropdown-option {
+      display: block;
+      width: 100%;
+      padding: 8px 10px;
+      border: none;
+      background: white;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .dropdown-option:hover,
+    .dropdown-option.active {
+      background: #eeeeee;
+    }
+
+    .dropdown-empty {
+      padding: 8px 10px;
+      color: #666;
+    }
+
+    /* Move the title away from the left-side controls */
+    .page-title {
+      position: fixed;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      margin: 0;
+      max-width: 55%;
+      text-align: center;
+      z-index: 500;
+    }
+
+    /* Prerequisite selector now lives under Select Course. */
+    .prerequisite-form {
+      margin: 0;
+    }
+
+    .prerequisite-form .searchable-dropdown {
+      width: 300px;
+    }
+
+    .course-graph {
+      position: fixed;
+      top: 52%;
+      left: 64%;
+      max-width: 72%;
+      max-height: 76%;
+      transform: translate(-50%, -50%);
+    }
+
+    .course-details {
+      position: fixed;
+      top: 285px;
+      left: 15px;
+      width: 475px;
+      max-height: calc(100vh - 305px);
+      overflow-y: auto;
+      box-sizing: border-box;
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid #cccccc;
+      line-height: 1.35;
+      z-index: 1200;
+    }
+  </style>
 </head>
 
 <body>
 
-  {% if request.path != '/geturl' %}
+  <!-- LEFT SIDE CONTROLS -->
+  <div class="left-controls">
 
-    <div class="grid">
+    <button onclick="window.location.href='/reset';">
+      Home
+    </button>
 
-      <button
-        style="position: fixed; top: 15px; left: 15px;"
-        onclick="window.location.href='/';">
-        Home
-      </button>
+    <!-- MAJOR -->
+    <form id="majorForm" action="/major" method="post">
+      <div class="control-row">
 
-      <button
-        style="position: fixed; top: 50px; left: 15px;"
-        onclick="window.location.href='/geturl';">
-        Change Major
-      </button>
+        <label class="control-label" for="majorSearch">
+          Major:
+        </label>
 
-      <form
-        id="inputcourse"
-        action="/course"
-        method="post"
-        style="position: fixed; top: 15px; left: 90px;">
+        <div class="searchable-dropdown" data-searchable-dropdown>
 
-        <label for="course">Select Course:</label>
+          <div class="search-input-wrapper">
 
-        <select id="course" name="course" required>
-          <option
-            value=""
-            disabled
-            {% if not course_wanted %}selected{% endif %}>
-            Choose a course
-          </option>
+            <input
+              type="text"
+              id="majorSearch"
+              class="dropdown-search"
+              placeholder="Type a major..."
+              autocomplete="off"
+              value="{{ selected_major|default('', true) }}"
+              data-error-message="Please choose a major from the dropdown."
+            >
 
-          {% for course in courses %}
-            <option
-              value="{{ course }}"
-              {% if course_wanted == course %}selected{% endif %}>
-              {{ course }}
-            </option>
-          {% endfor %}
-        </select>
+            <button
+              type="button"
+              class="clear-search"
+              aria-label="Clear major"
+              title="Clear">
+              ×
+            </button>
 
-        <input type="submit" value="Submit">
-
-      </form>
-
-      <h1
-        style="
-          position: fixed;
-          top: 0;
-          left: 50%;
-          transform: translateX(-50%);
-        ">
-        UF {{ major }} Courses
-      </h1>
-
-    </div>
-
-    <div class="grid">
-
-      {% if request.path == '/course' or request.path == '/course/show' %}
-
-        <img
-          src="{{ url_for('static', filename=coursefile) }}"
-          style="
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            max-width: 50%;
-            transform: translate(-50%, -50%);
-          "
-          alt="Course prerequisite graph"
-        >
-
-        {% if course_wanted %}
-
-          <form
-            action="/course/show"
-            method="post"
-            style="
-              position: fixed;
-              top: 80px;
-              right: 15px;
-            ">
-
-            <label for="currents">Select Prerequisite:</label>
-
-            <select id="currents" name="currents" required>
-
-              <option
-                value=""
-                disabled
-                {% if not selected_current %}selected{% endif %}>
-                Choose a prerequisite
-              </option>
-
-              {% for i in range(currents|length) %}
-
-                <option
-                  value="{{ currents[i] }}"
-                  {% if selected_current == currents[i] %}selected{% endif %}>
-                  {{ currents[i] }}
-                </option>
-
-              {% endfor %}
-
-            </select>
-
-            <input type="submit" value="Show">
-
-          </form>
-
-        {% endif %}
-
-        {% if request.path == '/course/show' %}
-
-          <div
-            style="
-              position: fixed;
-              bottom: 15px;
-              left: 50%;
-              transform: translate(-50%, 0);
-            ">
-            {{ showCurrents|safe }}
           </div>
 
-        {% endif %}
+          <input
+            type="hidden"
+            id="major"
+            name="major"
+            class="dropdown-value"
+            value="{{ selected_major|default('', true) }}"
+          >
 
-      {% endif %}
+          <div class="dropdown-options" hidden>
 
-    </div>
+            {% for major_name in majors %}
+              <button
+                type="button"
+                class="dropdown-option"
+                data-value="{{ major_name }}">
+                {{ major_name }}
+              </button>
+            {% endfor %}
 
-  {% endif %}
+            <div class="dropdown-empty" hidden>
+              No matching majors
+            </div>
 
-  {% if request.path == '/geturl' %}
+          </div>
 
-    <div class="grid">
+        </div>
 
-      <form
-        id="inputForm"
-        method="post"
-        style="position: fixed; top: 15px; left: 90px;">
+        <input type="submit" value="Change">
 
-        <label for="inputmajor">
-          Input Major:
+      </div>
+    </form>
+
+
+    {% if major %}
+    <!-- COURSE -->
+    <form id="inputcourse" action="/course" method="post">
+      <div class="control-row">
+
+        <label class="control-label" for="courseSearch">
+          Select Course:
         </label>
 
-        <input
-          type="text"
-          id="inputmajor"
-          name="inputmajor"
-          required>
+        <div class="searchable-dropdown" data-searchable-dropdown>
 
-        <label for="inputurl">
-          Input URL:
-        </label>
+          <div class="search-input-wrapper">
 
-        <input
-          type="text"
-          id="inputurl"
-          name="inputurl"
-          required>
+            <input
+              type="text"
+              id="courseSearch"
+              class="dropdown-search"
+              placeholder="Type a course..."
+              autocomplete="off"
+              value="{{ course_wanted|default('', true) }}"
+              data-error-message="Please choose a course from the dropdown."
+            >
+
+            <button
+              type="button"
+              class="clear-search"
+              aria-label="Clear course"
+              title="Clear">
+              ×
+            </button>
+
+          </div>
+
+          <input
+            type="hidden"
+            id="course"
+            name="course"
+            class="dropdown-value"
+            value="{{ course_wanted|default('', true) }}"
+          >
+
+          <div class="dropdown-options" hidden>
+
+            {% for course in courses %}
+              <button
+                type="button"
+                class="dropdown-option"
+                data-value="{{ course }}">
+                {{ course }}
+              </button>
+            {% endfor %}
+
+            <div class="dropdown-empty" hidden>
+              No matching courses
+            </div>
+
+          </div>
+
+        </div>
 
         <input type="submit" value="Submit">
 
+      </div>
+    </form>
+    {% endif %}
+
+
+    {% if course_wanted and currents %}
+
+      <form
+        id="prerequisiteForm"
+        action="/course/show"
+        method="post"
+        class="prerequisite-form"
+      >
+
+        <div class="control-row">
+
+          <label class="control-label" for="prereqSearch">
+            Select Prerequisite:
+          </label>
+
+          <div class="searchable-dropdown" data-searchable-dropdown>
+
+            <div class="search-input-wrapper">
+
+              <input
+                type="text"
+                id="prereqSearch"
+                class="dropdown-search"
+                placeholder="Type a prerequisite..."
+                autocomplete="off"
+                value="{{ selected_current|default('', true) }}"
+                data-error-message="Please choose a prerequisite from the dropdown."
+              >
+
+              <button
+                type="button"
+                class="clear-search"
+                aria-label="Clear prerequisite"
+                title="Clear">
+                ×
+              </button>
+
+            </div>
+
+            <input
+              type="hidden"
+              id="currents"
+              name="currents"
+              class="dropdown-value"
+              value="{{ selected_current|default('', true) }}"
+            >
+
+            <div class="dropdown-options" hidden>
+
+              {% for current in currents %}
+                <button
+                  type="button"
+                  class="dropdown-option"
+                  data-value="{{ current }}">
+                  {{ current }}
+                </button>
+              {% endfor %}
+
+              <div class="dropdown-empty" hidden>
+                No matching prerequisites
+              </div>
+
+            </div>
+
+          </div>
+
+          <input type="submit" value="Show">
+
+          {% if request.path == '/course/show' %}
+            <button
+              type="submit"
+              formaction="/course/hide"
+              formmethod="post">
+              Hide
+            </button>
+          {% endif %}
+
+        </div>
+
       </form>
 
-    </div>
+    {% endif %}
+
+    {% if course_wanted %}
+      <form id="depthForm" action="/depth" method="post">
+        <div class="control-row">
+
+          <label class="control-label" for="graphDepth">
+            Prerequisite Depth:
+          </label>
+
+          <select id="graphDepth" name="graph_depth">
+            {% for depth in range(1, max_selectable_depth + 1) %}
+              <option
+                value="{{ depth }}"
+                {% if graph_depth == depth %}selected{% endif %}
+              >
+                {{ depth }}
+              </option>
+            {% endfor %}
+          </select>
+
+          <input type="submit" value="Apply">
+
+        </div>
+      </form>
+    {% endif %}
+
+
+  </div>
+
+
+  <!-- PAGE TITLE -->
+  {% if major %}
+  <h1 class="page-title">
+    UF {{ major }} Courses
+  </h1>
+  {% else %}
+    <h1 class="page-title">
+      UF Course Finder
+    </h1>
+  {% endif %}
+
+
+  <!-- GRAPH + PREREQUISITES -->
+  {% if request.path == '/course' or request.path == '/course/show' or request.path == '/course/hide' or request.path == '/depth' %}
+
+    <img
+      src="{{ url_for('static', filename=coursefile) }}"
+      class="course-graph"
+      alt="Course prerequisite graph"
+    >
+
+
+
+
+
+    {% if request.path == '/course/show' %}
+
+      <div class="course-details">
+        {{ showCurrents|safe }}
+      </div>
+
+    {% endif %}
 
   {% endif %}
+
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+
+      const dropdowns =
+        document.querySelectorAll("[data-searchable-dropdown]");
+
+      dropdowns.forEach((dropdown) => {
+
+        const searchInput =
+          dropdown.querySelector(".dropdown-search");
+
+        const hiddenInput =
+          dropdown.querySelector(".dropdown-value");
+
+        const optionsContainer =
+          dropdown.querySelector(".dropdown-options");
+
+        const options =
+          Array.from(dropdown.querySelectorAll(".dropdown-option"));
+
+        const emptyMessage =
+          dropdown.querySelector(".dropdown-empty");
+
+        const clearButton =
+          dropdown.querySelector(".clear-search");
+
+        const form =
+          dropdown.closest("form");
+
+        let activeIndex = -1;
+
+
+        function getVisibleOptions() {
+          return options.filter(
+            (option) => option.style.display !== "none"
+          );
+        }
+
+
+        function openDropdown() {
+          optionsContainer.hidden = false;
+        }
+
+
+        function closeDropdown() {
+          optionsContainer.hidden = true;
+          activeIndex = -1;
+          updateActiveOption();
+        }
+
+
+        function updateActiveOption() {
+          const visibleOptions = getVisibleOptions();
+
+          visibleOptions.forEach((option, index) => {
+            option.classList.toggle(
+              "active",
+              index === activeIndex
+            );
+          });
+        }
+
+
+        function filterOptions(searchText) {
+
+          const query =
+            searchText.trim().toLowerCase();
+
+          let visibleCount = 0;
+
+          options.forEach((option) => {
+
+            const optionText =
+              option.textContent
+                .trim()
+                .toLowerCase();
+
+            const matches =
+              optionText.includes(query);
+
+            option.style.display =
+              matches ? "block" : "none";
+
+            if (matches) {
+              visibleCount++;
+            }
+
+          });
+
+          if (emptyMessage) {
+            emptyMessage.hidden =
+              visibleCount !== 0;
+          }
+
+          activeIndex = -1;
+          updateActiveOption();
+        }
+
+
+        function selectOption(option) {
+
+          const value =
+            option.dataset.value;
+
+          searchInput.value =
+            value;
+
+          hiddenInput.value =
+            value;
+
+          searchInput.setCustomValidity("");
+
+          closeDropdown();
+        }
+
+
+        /* X CLEAR BUTTON */
+        if (clearButton) {
+
+          clearButton.addEventListener(
+            "click",
+            () => {
+
+              searchInput.value = "";
+              hiddenInput.value = "";
+
+              searchInput.setCustomValidity("");
+
+              filterOptions("");
+              openDropdown();
+
+              searchInput.focus();
+            }
+          );
+
+        }
+
+
+        searchInput.addEventListener(
+          "focus",
+          () => {
+
+            filterOptions(searchInput.value);
+            openDropdown();
+
+          }
+        );
+
+
+        searchInput.addEventListener(
+          "click",
+          () => {
+
+            filterOptions(searchInput.value);
+            openDropdown();
+
+          }
+        );
+
+
+        searchInput.addEventListener(
+          "input",
+          () => {
+
+            const typedValue =
+              searchInput.value.trim();
+
+            hiddenInput.value = "";
+
+            searchInput.setCustomValidity("");
+
+            filterOptions(typedValue);
+            openDropdown();
+
+            const exactMatch =
+              options.find(
+                (option) =>
+                  option.dataset.value
+                    .toLowerCase() ===
+                  typedValue.toLowerCase()
+              );
+
+            if (exactMatch) {
+              hiddenInput.value =
+                exactMatch.dataset.value;
+            }
+
+          }
+        );
+
+
+        options.forEach((option) => {
+
+          option.addEventListener(
+            "click",
+            () => selectOption(option)
+          );
+
+        });
+
+
+        searchInput.addEventListener(
+          "keydown",
+          (event) => {
+
+            const visibleOptions =
+              getVisibleOptions();
+
+
+            if (event.key === "ArrowDown") {
+
+              event.preventDefault();
+
+              openDropdown();
+
+              if (visibleOptions.length > 0) {
+
+                activeIndex =
+                  Math.min(
+                    activeIndex + 1,
+                    visibleOptions.length - 1
+                  );
+
+                updateActiveOption();
+
+                visibleOptions[
+                  activeIndex
+                ].scrollIntoView({
+                  block: "nearest"
+                });
+              }
+            }
+
+
+            if (event.key === "ArrowUp") {
+
+              event.preventDefault();
+
+              if (visibleOptions.length > 0) {
+
+                activeIndex =
+                  Math.max(
+                    activeIndex - 1,
+                    0
+                  );
+
+                updateActiveOption();
+
+                visibleOptions[
+                  activeIndex
+                ].scrollIntoView({
+                  block: "nearest"
+                });
+              }
+            }
+
+
+            if (event.key === "Enter") {
+
+              if (
+                !optionsContainer.hidden &&
+                visibleOptions.length > 0
+              ) {
+
+                event.preventDefault();
+
+                const optionToSelect =
+                  activeIndex >= 0
+                    ? visibleOptions[activeIndex]
+                    : visibleOptions[0];
+
+                selectOption(optionToSelect);
+              }
+            }
+
+
+            if (event.key === "Escape") {
+              closeDropdown();
+            }
+
+          }
+        );
+
+
+        form.addEventListener(
+          "submit",
+          (event) => {
+
+            const typedValue =
+              searchInput.value.trim();
+
+            const exactMatch =
+              options.find(
+                (option) =>
+                  option.dataset.value
+                    .toLowerCase() ===
+                  typedValue.toLowerCase()
+              );
+
+            if (exactMatch) {
+
+              hiddenInput.value =
+                exactMatch.dataset.value;
+
+              searchInput.value =
+                exactMatch.dataset.value;
+
+              return;
+            }
+
+
+            if (!hiddenInput.value) {
+
+              event.preventDefault();
+
+              openDropdown();
+
+              searchInput.focus();
+
+              searchInput.setCustomValidity(
+                searchInput.dataset.errorMessage ||
+                "Please choose an item from the dropdown."
+              );
+
+              searchInput.reportValidity();
+            }
+
+          }
+        );
+
+
+        document.addEventListener(
+          "click",
+          (event) => {
+
+            if (!dropdown.contains(event.target)) {
+              closeDropdown();
+            }
+
+          }
+        );
+
+
+        filterOptions(searchInput.value);
+
+      });
+
+    });
+  </script>
 
 </body>
 

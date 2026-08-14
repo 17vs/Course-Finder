@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: course-finder
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
